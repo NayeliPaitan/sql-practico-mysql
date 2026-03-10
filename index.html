@@ -8,6 +8,10 @@
   <link rel="icon" type="image/png" href="img/icon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js"></script>
 <style>
   :root {
     --bg:        #0a1a3b;
@@ -369,6 +373,37 @@
     .sidebar { display: none; }
     .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
   }
+
+  /* ── CODEMIRROR THEME ── */
+  .CodeMirror {
+    flex: 1;
+    height: 100%;
+    background: var(--code-bg) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: .85rem;
+    line-height: 1.7;
+    color: #C084FC;
+  }
+  .CodeMirror-scroll { height: 100%; }
+  .CodeMirror-cursor { border-left: 2px solid #894df8 !important; }
+  .CodeMirror-selected { background: rgba(137,77,248,.2) !important; }
+  .CodeMirror-gutters { background: var(--code-bg) !important; border-right: 1px solid var(--border) !important; }
+  .CodeMirror-linenumber { color: #2a3f6a !important; }
+
+  /* SQL keyword colors */
+  .cm-keyword   { color: #894df8 !important; font-weight: 700; }
+  .cm-builtin   { color: #A855F7 !important; font-weight: 600; }
+  .cm-string    { color: #86efac !important; }
+  .cm-number    { color: #fda4af !important; }
+  .cm-comment   { color: #3a5078 !important; font-style: italic; }
+  .cm-operator  { color: #C084FC !important; }
+  .cm-punctuation { color: #9CA3AF !important; }
+  .cm-def       { color: #7dd3fc !important; }
+  .cm-variable  { color: #F5F5F7 !important; }
+  .cm-variable-2 { color: #e2d9f3 !important; }
+
+  .CodeMirror-placeholder { color: #2a3f6a !important; }
+
 </style>
 </head>
 <body>
@@ -414,8 +449,7 @@
             <button class="btn-run" onclick="runQuery()">▶ Ejecutar</button>
           </div>
         </div>
-        <textarea id="editor" spellcheck="false" placeholder="-- Escribe tu consulta SQL aquí...
--- Presiona ▶ Ejecutar para ver los resultados"></textarea>
+        <textarea id="editor" spellcheck="false"></textarea>
       </div>
 
       <!-- RESULTS -->
@@ -721,6 +755,7 @@ INSERT INTO detalle_pedidos (pedido_id, producto_id, cantidad, precio_unit) VALU
 // ═══════════════════════════════════════════
 let db = null;
 let currentEx = EXERCISES[0];
+let editor = null;
 
 // ── Build Sidebar ──
 function buildSidebar() {
@@ -765,7 +800,7 @@ function selectExercise(id) {
     </div>
     <div class="exercise-title fade-in">${currentEx.desc}</div>
   `;
-  document.getElementById('editor').value = '';
+  editor.setValue('');
   document.getElementById('resultBody').innerHTML = `
     <div class="result-placeholder">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -778,7 +813,7 @@ function selectExercise(id) {
 
 // ── Run Query ──
 function runQuery() {
-  const sql = document.getElementById('editor').value.trim();
+  const sql = editor.getValue().trim();
   if (!sql) return;
   const t0 = performance.now();
   try {
@@ -812,7 +847,7 @@ function runQuery() {
 
 // ── Show Solution ──
 function showSolution() {
-  document.getElementById('editor').value = currentEx.solution;
+  editor.setValue(currentEx.solution);
 }
 
 // ── Keyboard shortcut Ctrl+Enter ──
@@ -827,6 +862,20 @@ async function init() {
   });
   db = new SQL.Database();
   db.run(SCHEMA_SQL);
+  // Init CodeMirror
+  editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+    mode: 'text/x-sql',
+    lineNumbers: true,
+    indentWithTabs: false,
+    tabSize: 2,
+    lineWrapping: false,
+    autofocus: true,
+    placeholder: '-- Escribe tu consulta SQL aquí...\n-- Presiona ▶ Ejecutar o Ctrl+Enter',
+    extraKeys: {
+      'Ctrl-Enter': runQuery,
+      'Cmd-Enter':  runQuery,
+    }
+  });
   buildSidebar();
   selectExercise(1);
   setTimeout(() => {
