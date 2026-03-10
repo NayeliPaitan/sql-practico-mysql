@@ -26,8 +26,12 @@ sql-practico-mysql/
 │   └── soluciones.sql
 │
 └── 04-subconsultas/
-    ├── ejercicios.sql          # 6 ejercicios
-    └── soluciones.sql
+│   ├── ejercicios.sql          # 6 ejercicios
+│   └── soluciones.sql
+│
+└── img/
+    └──icon.ico
+    └──icon.png
 ```
 
 ---
@@ -91,4 +95,4 @@ clientes   ──< pedidos ──< detalle_pedidos >── productos
 
 ## 👤 Autor
 
-**BlakeDev- By Nayeli Paitan** — [@Nayeli Paitan](https://github.com/NayeliPaitan/)
+**BlakeDev | By** [@Nayeli Paitan](https://github.com/NayeliPaitan/)
