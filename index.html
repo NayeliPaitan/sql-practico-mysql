@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Práctico · blakedev</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a1a3b;
+    --surface:   #0d2048;
+    --border:    #1a2f5a;
+    --accent:    #894df8;
+    --accent2:   #A855F7;
+    --accent3:   #C084FC;
+    --green:     #A855F7;
+    --red:       #f87171;
+    --yellow:    #C084FC;
+    --text:      #F5F5F7;
+    --muted:     #9CA3AF;
+    --code-bg:   #071230;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── grid noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(137,77,248,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(137,77,248,.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,14,23,.85);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: .6rem;
+    font-size: 1.1rem; font-weight: 800; letter-spacing: -.02em;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #894df8, #C084FC);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .65rem; font-weight: 700; color: #fff;
+  }
+  .logo span { color: var(--accent); }
+
+  .header-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .7rem;
+    background: rgba(137,77,248,.1);
+    border: 1px solid rgba(137,77,248,.25);
+    color: var(--accent3);
+    padding: .3rem .8rem;
+    border-radius: 999px;
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    height: calc(100vh - 62px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 1.2rem;
+    display: flex; flex-direction: column; gap: .4rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .sidebar-section {
+    font-size: .65rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted);
+    padding: .8rem .4rem .4rem;
+  }
+
+  .exercise-btn {
+    width: 100%; text-align: left;
+    background: none; border: none; cursor: pointer;
+    padding: .65rem .8rem;
+    border-radius: 8px;
+    transition: all .15s;
+    display: flex; align-items: flex-start; gap: .7rem;
+  }
+  .exercise-btn:hover { background: rgba(255,255,255,.04); }
+  .exercise-btn.active { background: rgba(137,77,248,.1); border-left: 2px solid var(--accent); }
+
+  .ex-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .65rem; font-weight: 700;
+    color: var(--muted);
+    padding-top: 2px; min-width: 22px;
+  }
+  .exercise-btn.active .ex-num { color: var(--accent); }
+
+  .ex-title {
+    font-size: .78rem; color: var(--text); line-height: 1.4;
+    font-weight: 400;
+  }
+  .exercise-btn.active .ex-title { color: #fff; font-weight: 600; }
+
+  .topic-tag {
+    display: inline-block;
+    font-size: .6rem; font-weight: 700;
+    padding: .2rem .5rem; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: .06em;
+    margin-bottom: .6rem;
+  }
+  .tag-select  { background: rgba(137,77,248,.15); color: #C084FC; }
+  .tag-join    { background: rgba(168,85,247,.15);  color: #A855F7; }
+  .tag-agg     { background: rgba(192,132,252,.12); color: #C084FC; }
+  .tag-sub     { background: rgba(137,77,248,.1);   color: #894df8; filter: brightness(1.4); }
+
+  /* ── MAIN ── */
+  .main {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    overflow: hidden;
+  }
+
+  .exercise-header {
+    padding: 1.5rem 2rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .exercise-meta {
+    display: flex; align-items: center; gap: .8rem;
+    margin-bottom: .8rem;
+  }
+
+  .ex-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .75rem; color: var(--muted);
+  }
+
+  .exercise-title {
+    font-size: 1.05rem; font-weight: 600; line-height: 1.5;
+    color: var(--text);
+  }
+
+  /* ── EDITOR + RESULTS ── */
+  .workspace {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+  }
+
+  .editor-pane, .result-pane {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .editor-pane { border-right: 1px solid var(--border); }
+
+  .pane-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .6rem 1rem;
+    background: rgba(10,26,59,.9);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .pane-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .7rem; font-weight: 500; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .1em;
+  }
+
+  .btn-run {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .4rem 1rem;
+    background: linear-gradient(135deg, #894df8, #A855F7); color: #fff;
+    border: none; border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .75rem; font-weight: 700;
+    cursor: pointer; transition: all .15s;
+    letter-spacing: .05em;
+  }
+  .btn-run:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(137,77,248,.45); }
+  .btn-run:active { transform: translateY(0); }
+
+  .btn-solution {
+    display: flex; align-items: center; gap: .4rem;
+    padding: .35rem .8rem;
+    background: rgba(192,132,252,.08);
+    border: 1px solid rgba(192,132,252,.2);
+    color: var(--accent3); border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .7rem; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+  }
+  .btn-solution:hover { background: rgba(192,132,252,.15); }
+
+  textarea#editor {
+    flex: 1;
+    width: 100%;
+    background: var(--code-bg);
+    color: #C084FC;
+    border: none; outline: none; resize: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .85rem; line-height: 1.7;
+    padding: 1.2rem 1.5rem;
+    tab-size: 2;
+    caret-color: var(--accent);
+  }
+
+  .result-body {
+    flex: 1; overflow: auto; padding: 1rem 1.2rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .result-placeholder {
+    height: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: .6rem;
+    color: var(--muted);
+  }
+  .result-placeholder svg { opacity: .3; }
+  .result-placeholder p { font-size: .8rem; font-family: 'JetBrains Mono', monospace; }
+
+  .result-table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem;
+  }
+  th {
+    background: rgba(137,77,248,.1);
+    color: var(--accent3);
+    text-align: left; padding: .5rem .8rem;
+    font-weight: 600; font-size: .7rem;
+    text-transform: uppercase; letter-spacing: .08em;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+  }
+  td {
+    padding: .45rem .8rem;
+    border-bottom: 1px solid rgba(30,45,64,.6);
+    color: #cbd5e1;
+  }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  .row-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .68rem; color: var(--muted);
+    margin-top: .8rem;
+  }
+
+  .error-box {
+    background: rgba(255,77,109,.07);
+    border: 1px solid rgba(255,77,109,.2);
+    border-radius: 8px; padding: 1rem 1.2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .8rem; color: var(--red); line-height: 1.6;
+  }
+
+  .success-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: rgba(137,77,248,.1);
+    border: 1px solid rgba(137,77,248,.25);
+    color: var(--accent3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .7rem; padding: .25rem .7rem;
+    border-radius: 999px; margin-bottom: .8rem;
+  }
+
+  /* ── STATUS BAR ── */
+  .statusbar {
+    border-top: 1px solid var(--border);
+    padding: .45rem 2rem;
+    background: rgba(10,14,23,.9);
+    display: flex; align-items: center; gap: 1.5rem;
+  }
+  .status-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .65rem; color: var(--muted);
+    display: flex; align-items: center; gap: .4rem;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-green { background: #A855F7; box-shadow: 0 0 6px #A855F7; }
+  .dot-blue  { background: #894df8; box-shadow: 0 0 6px #894df8; }
+
+  /* ── LOADING ── */
+  #loader {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1.2rem;
+  }
+  .loader-logo { font-size: 1.4rem; font-weight: 800; }
+  .loader-logo span { color: var(--accent); }
+  .loader-bar {
+    width: 200px; height: 2px;
+    background: var(--border); border-radius: 2px; overflow: hidden;
+  }
+  .loader-fill {
+    height: 100%; background: var(--accent);
+    border-radius: 2px;
+    animation: load 1.8s ease-out forwards;
+    background: linear-gradient(90deg, #894df8, #C084FC);
+  }
+  @keyframes load { from { width: 0; } to { width: 100%; } }
+  .loader-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .75rem; color: var(--muted);
+  }
+
+  /* ── FADE IN ── */
+  .fade-in { animation: fadeIn .4s ease both; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">blake<span>dev</span></div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-text">cargando SQL engine...</div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">SQL</div>
+    SQL Práctico · <span>blakedev</span>
+  </div>
+  <div class="header-badge">✦ SQLite · 27 ejercicios</div>
+</header>
+
+<!-- APP -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="exercise-header" id="exerciseHeader"></div>
+
+    <div class="workspace">
+      <!-- EDITOR -->
+      <div class="editor-pane">
+        <div class="pane-header">
+          <span class="pane-title">⌨ editor.sql</span>
+          <div style="display:flex;gap:.6rem;align-items:center">
+            <button class="btn-solution" onclick="showSolution()">💡 Ver solución</button>
+            <button class="btn-run" onclick="runQuery()">▶ Ejecutar</button>
+          </div>
+        </div>
+        <textarea id="editor" spellcheck="false" placeholder="-- Escribe tu consulta SQL aquí...
+-- Presiona ▶ Ejecutar para ver los resultados"></textarea>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="result-pane">
+        <div class="pane-header">
+          <span class="pane-title">◈ resultados</span>
+          <span id="execTime" style="font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted)"></span>
+        </div>
+        <div class="result-body" id="resultBody">
+          <div class="result-placeholder">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0018 0V5"/><path d="M3 12a9 3 0 0018 0"/>
+            </svg>
+            <p>ejecuta una consulta para ver resultados</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="statusbar">
+      <div class="status-item"><div class="status-dot dot-green"></div><span id="dbStatus">DB lista</span></div>
+      <div class="status-item"><div class="status-dot dot-blue"></div><span>tienda_db</span></div>
+      <div class="status-item">tablas: categorias · productos · clientes · pedidos · detalle_pedidos</div>
+    </div>
+  </main>
+</div>
+
+<!-- SQL.js desde CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+
+<script>
+// ═══════════════════════════════════════════
+//  EJERCICIOS
+// ═══════════════════════════════════════════
+const EXERCISES = [
+  // ── SELECT / FILTROS ──
+  {
+    id: 1, topic: 'select', topicLabel: 'SELECT', tag: 'tag-select',
+    title: 'Todos los productos',
+    desc: 'Muestra todos los productos disponibles: nombre, precio y stock.',
+    solution: `SELECT nombre, precio, stock\nFROM productos;`
+  },
+  {
+    id: 2, topic: 'select', topicLabel: 'SELECT', tag: 'tag-select',
+    title: 'Clientes activos',
+    desc: 'Muestra solo los clientes que están activos.',
+    solution: `SELECT *\nFROM clientes\nWHERE activo = 1;`
+  },
+  {
+    id: 3, topic: 'select', topicLabel: 'SELECT', tag: 'tag-select',
+    title: 'Productos mayores a $100',
+    desc: 'Lista los productos con precio mayor a 100.',
+    solution: `SELECT nombre, precio\nFROM productos\nWHERE precio > 100;`
+  },
+  {
+    id: 4, topic: 'select', topicLabel: 'SELECT', tag: 'tag-select',
+    title: 'Clientes de Lima',
+    desc: 'Muestra los clientes que son de la ciudad de Lima.',
+    solution: `SELECT nombre, email\nFROM clientes\nWHERE ciudad = 'Lima';`
+  },
+  {
+    id: 5, topic: 'select', topicLabel: 'SELECT', tag: 'tag-select',
+    title: 'Búsqueda con LIKE',
+    desc: 'Lista los productos cuyo nombre contiene la palabra "Mouse" (sin distinción de mayúsculas).',
+    solution: `SELECT nombre, precio\nFROM productos\nWHERE LOWER(nombre) LIKE '%mouse%';`
+  },
+  {
+    id: 6, topic: 'select', topicLabel: 'SELECT', tag: 'tag-select',
+    title: 'Top 5 más caros',
+    desc: 'Muestra los 5 productos más caros, ordenados de mayor a menor precio.',
+    solution: `SELECT nombre, precio\nFROM productos\nORDER BY precio DESC\nLIMIT 5;`
+  },
+  {
+    id: 7, topic: 'select', topicLabel: 'SELECT', tag: 'tag-select',
+    title: 'Pedidos en rango de fechas',
+    desc: 'Lista los pedidos realizados entre el 1 de febrero y el 31 de marzo de 2024.',
+    solution: `SELECT id, cliente_id, fecha, estado\nFROM pedidos\nWHERE fecha BETWEEN '2024-02-01' AND '2024-03-31';`
+  },
+  {
+    id: 8, topic: 'select', topicLabel: 'SELECT', tag: 'tag-select',
+    title: 'Stock entre 20 y 50',
+    desc: 'Muestra los productos con stock entre 20 y 50 unidades.',
+    solution: `SELECT nombre, stock\nFROM productos\nWHERE stock BETWEEN 20 AND 50;`
+  },
+
+  // ── JOINs ──
+  {
+    id: 9, topic: 'join', topicLabel: 'JOIN', tag: 'tag-join',
+    title: 'Productos con categoría',
+    desc: 'Muestra cada producto junto con el nombre de su categoría.',
+    solution: `SELECT p.nombre AS producto, c.nombre AS categoria, p.precio\nFROM productos p\nINNER JOIN categorias c ON p.categoria_id = c.id;`
+  },
+  {
+    id: 10, topic: 'join', topicLabel: 'JOIN', tag: 'tag-join',
+    title: 'Pedidos con cliente',
+    desc: 'Lista todos los pedidos mostrando: id del pedido, nombre del cliente, fecha y estado.',
+    solution: `SELECT pe.id, cl.nombre AS cliente, pe.fecha, pe.estado\nFROM pedidos pe\nINNER JOIN clientes cl ON pe.cliente_id = cl.id;`
+  },
+  {
+    id: 11, topic: 'join', topicLabel: 'JOIN', tag: 'tag-join',
+    title: 'Detalle completo de pedidos',
+    desc: 'Muestra el detalle de cada pedido: id_pedido, cliente, producto, cantidad y precio unitario.',
+    solution: `SELECT\n  pe.id AS id_pedido,\n  cl.nombre AS cliente,\n  pr.nombre AS producto,\n  dp.cantidad,\n  dp.precio_unit\nFROM detalle_pedidos dp\nINNER JOIN pedidos pe ON dp.pedido_id = pe.id\nINNER JOIN clientes cl ON pe.cliente_id = cl.id\nINNER JOIN productos pr ON dp.producto_id = pr.id;`
+  },
+  {
+    id: 12, topic: 'join', topicLabel: 'JOIN', tag: 'tag-join',
+    title: 'Clientes y sus pedidos (LEFT JOIN)',
+    desc: 'Lista todos los clientes y, si tienen pedidos, muestra cuántos han realizado. Incluye clientes sin pedidos.',
+    solution: `SELECT cl.nombre, COUNT(pe.id) AS total_pedidos\nFROM clientes cl\nLEFT JOIN pedidos pe ON cl.id = pe.cliente_id\nGROUP BY cl.id, cl.nombre;`
+  },
+  {
+    id: 13, topic: 'join', topicLabel: 'JOIN', tag: 'tag-join',
+    title: 'Pedidos entregados',
+    desc: "Muestra los pedidos con estado 'entregado' incluyendo nombre del cliente y ciudad.",
+    solution: `SELECT pe.id, cl.nombre AS cliente, cl.ciudad, pe.fecha\nFROM pedidos pe\nINNER JOIN clientes cl ON pe.cliente_id = cl.id\nWHERE pe.estado = 'entregado';`
+  },
+  {
+    id: 14, topic: 'join', topicLabel: 'JOIN', tag: 'tag-join',
+    title: 'Total por pedido',
+    desc: 'Obtén el total gastado por cada pedido (cantidad × precio_unit) mostrando: id_pedido, nombre del cliente y total.',
+    solution: `SELECT\n  pe.id AS id_pedido,\n  cl.nombre AS cliente,\n  SUM(dp.cantidad * dp.precio_unit) AS total\nFROM pedidos pe\nINNER JOIN clientes cl ON pe.cliente_id = cl.id\nINNER JOIN detalle_pedidos dp ON pe.id = dp.pedido_id\nGROUP BY pe.id, cl.nombre;`
+  },
+
+  // ── AGREGACIONES ──
+  {
+    id: 15, topic: 'agg', topicLabel: 'GROUP BY', tag: 'tag-agg',
+    title: 'Productos por categoría',
+    desc: 'Cuenta cuántos productos hay en cada categoría.',
+    solution: `SELECT c.nombre AS categoria, COUNT(p.id) AS total_productos\nFROM categorias c\nLEFT JOIN productos p ON c.id = p.categoria_id\nGROUP BY c.id, c.nombre;`
+  },
+  {
+    id: 16, topic: 'agg', topicLabel: 'GROUP BY', tag: 'tag-agg',
+    title: 'Estadísticas de precios',
+    desc: 'Muestra el precio promedio, mínimo y máximo de todos los productos.',
+    solution: `SELECT\n  ROUND(AVG(precio), 2) AS precio_promedio,\n  MIN(precio) AS precio_minimo,\n  MAX(precio) AS precio_maximo\nFROM productos;`
+  },
+  {
+    id: 17, topic: 'agg', topicLabel: 'GROUP BY', tag: 'tag-agg',
+    title: 'Total de ventas por producto',
+    desc: 'Calcula el total de ventas (suma de cantidad × precio_unit) por cada producto.',
+    solution: `SELECT\n  pr.nombre AS producto,\n  SUM(dp.cantidad * dp.precio_unit) AS total_vendido\nFROM detalle_pedidos dp\nINNER JOIN productos pr ON dp.producto_id = pr.id\nGROUP BY pr.id, pr.nombre\nORDER BY total_vendido DESC;`
+  },
+  {
+    id: 18, topic: 'agg', topicLabel: 'GROUP BY', tag: 'tag-agg',
+    title: 'Pedidos por estado',
+    desc: "Muestra cuántos pedidos hay en cada estado ('pendiente', 'enviado', etc.).",
+    solution: `SELECT estado, COUNT(*) AS cantidad\nFROM pedidos\nGROUP BY estado;`
+  },
+  {
+    id: 19, topic: 'agg', topicLabel: 'GROUP BY', tag: 'tag-agg',
+    title: 'Categorías con precio promedio > 100',
+    desc: 'Lista las categorías cuyo precio promedio de productos supera los 100. (Usa HAVING)',
+    solution: `SELECT c.nombre AS categoria, ROUND(AVG(p.precio), 2) AS precio_promedio\nFROM categorias c\nINNER JOIN productos p ON c.id = p.categoria_id\nGROUP BY c.id, c.nombre\nHAVING AVG(p.precio) > 100;`
+  },
+  {
+    id: 20, topic: 'agg', topicLabel: 'GROUP BY', tag: 'tag-agg',
+    title: 'Total gastado por cliente',
+    desc: 'Muestra el total gastado por cada cliente en todos sus pedidos, ordenado de mayor a menor.',
+    solution: `SELECT\n  cl.nombre AS cliente,\n  SUM(dp.cantidad * dp.precio_unit) AS total_gastado\nFROM clientes cl\nINNER JOIN pedidos pe ON cl.id = pe.cliente_id\nINNER JOIN detalle_pedidos dp ON pe.id = dp.pedido_id\nGROUP BY cl.id, cl.nombre\nORDER BY total_gastado DESC;`
+  },
+  {
+    id: 21, topic: 'agg', topicLabel: 'GROUP BY', tag: 'tag-agg',
+    title: 'Clientes por ciudad',
+    desc: 'Cuenta cuántos clientes hay por ciudad.',
+    solution: `SELECT ciudad, COUNT(*) AS total_clientes\nFROM clientes\nGROUP BY ciudad\nORDER BY total_clientes DESC;`
+  },
+
+  // ── SUBCONSULTAS ──
+  {
+    id: 22, topic: 'sub', topicLabel: 'Subconsulta', tag: 'tag-sub',
+    title: 'Productos sobre el promedio',
+    desc: 'Muestra los productos cuyo precio es mayor al precio promedio de todos los productos.',
+    solution: `SELECT nombre, precio\nFROM productos\nWHERE precio > (SELECT AVG(precio) FROM productos)\nORDER BY precio DESC;`
+  },
+  {
+    id: 23, topic: 'sub', topicLabel: 'Subconsulta', tag: 'tag-sub',
+    title: 'Clientes con pedidos',
+    desc: 'Lista los clientes que han realizado al menos un pedido. (Usa IN con subconsulta)',
+    solution: `SELECT nombre, email\nFROM clientes\nWHERE id IN (\n  SELECT DISTINCT cliente_id FROM pedidos\n);`
+  },
+  {
+    id: 24, topic: 'sub', topicLabel: 'Subconsulta', tag: 'tag-sub',
+    title: 'Clientes sin pedidos',
+    desc: 'Muestra los clientes que NO han realizado ningún pedido.',
+    solution: `SELECT nombre, email\nFROM clientes\nWHERE id NOT IN (\n  SELECT DISTINCT cliente_id FROM pedidos\n);`
+  },
+  {
+    id: 25, topic: 'sub', topicLabel: 'Subconsulta', tag: 'tag-sub',
+    title: 'Producto más caro por categoría',
+    desc: 'Obtén el producto más caro de cada categoría usando una subconsulta.',
+    solution: `SELECT p.nombre, p.precio, c.nombre AS categoria\nFROM productos p\nINNER JOIN categorias c ON p.categoria_id = c.id\nWHERE p.precio = (\n  SELECT MAX(p2.precio)\n  FROM productos p2\n  WHERE p2.categoria_id = p.categoria_id\n);`
+  },
+  {
+    id: 26, topic: 'sub', topicLabel: 'Subconsulta', tag: 'tag-sub',
+    title: 'Pedidos sobre el promedio',
+    desc: 'Muestra los pedidos cuyo total es mayor al total promedio de todos los pedidos.',
+    solution: `SELECT pedido_id, cliente, total\nFROM (\n  SELECT\n    pe.id AS pedido_id,\n    cl.nombre AS cliente,\n    SUM(dp.cantidad * dp.precio_unit) AS total\n  FROM pedidos pe\n  INNER JOIN clientes cl ON pe.cliente_id = cl.id\n  INNER JOIN detalle_pedidos dp ON pe.id = dp.pedido_id\n  GROUP BY pe.id, cl.nombre\n) AS totales\nWHERE total > (\n  SELECT AVG(sub.total)\n  FROM (\n    SELECT SUM(cantidad * precio_unit) AS total\n    FROM detalle_pedidos\n    GROUP BY pedido_id\n  ) AS sub\n);`
+  },
+  {
+    id: 27, topic: 'sub', topicLabel: 'Subconsulta', tag: 'tag-sub',
+    title: 'Productos nunca pedidos',
+    desc: 'Lista los productos que nunca han sido incluidos en ningún pedido.',
+    solution: `SELECT nombre, precio\nFROM productos\nWHERE id NOT IN (\n  SELECT DISTINCT producto_id FROM detalle_pedidos\n);`
+  },
+];
+
+// ═══════════════════════════════════════════
+//  SCHEMA SQL
+// ═══════════════════════════════════════════
+const SCHEMA_SQL = `
+CREATE TABLE categorias (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL
+);
+CREATE TABLE productos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL,
+  precio REAL NOT NULL,
+  stock INTEGER DEFAULT 0,
+  categoria_id INTEGER,
+  FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+);
+CREATE TABLE clientes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  ciudad TEXT,
+  activo INTEGER DEFAULT 1
+);
+CREATE TABLE pedidos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cliente_id INTEGER NOT NULL,
+  fecha TEXT NOT NULL,
+  estado TEXT DEFAULT 'pendiente',
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+);
+CREATE TABLE detalle_pedidos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pedido_id INTEGER NOT NULL,
+  producto_id INTEGER NOT NULL,
+  cantidad INTEGER NOT NULL,
+  precio_unit REAL NOT NULL,
+  FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
+  FOREIGN KEY (producto_id) REFERENCES productos(id)
+);
+INSERT INTO categorias (nombre) VALUES
+  ('Electrónica'),('Ropa'),('Alimentos'),('Libros'),('Hogar');
+INSERT INTO productos (nombre, precio, stock, categoria_id) VALUES
+  ('Laptop HP 15"', 2500.00, 10, 1),
+  ('Mouse Inalámbrico', 45.00, 80, 1),
+  ('Teclado Mecánico', 150.00, 30, 1),
+  ('Monitor 24"', 700.00, 15, 1),
+  ('Polo Blanco M', 30.00, 100, 2),
+  ('Jeans Azul 32', 80.00, 50, 2),
+  ('Zapatillas Running', 120.00, 40, 2),
+  ('Arroz 5kg', 18.00, 200, 3),
+  ('Aceite de Oliva 1L', 25.00, 120, 3),
+  ('Café Molido 500g', 22.00, 90, 3),
+  ('Clean Code', 55.00, 25, 4),
+  ('The Pragmatic Programmer', 60.00, 20, 4),
+  ('SQL para Principiantes', 35.00, 15, 4),
+  ('Cafetera Eléctrica', 180.00, 20, 5),
+  ('Set Sartenes', 250.00, 18, 5);
+INSERT INTO clientes (nombre, email, ciudad, activo) VALUES
+  ('Ana Torres','ana@email.com','Lima',1),
+  ('Carlos Ruiz','carlos@email.com','Arequipa',1),
+  ('María López','maria@email.com','Lima',0),
+  ('Jorge Mendoza','jorge@email.com','Cusco',1),
+  ('Lucía Sánchez','lucia@email.com','Lima',1),
+  ('Pedro Castillo','pedro@email.com','Trujillo',1),
+  ('Sofía Díaz','sofia@email.com','Lima',0),
+  ('Miguel Ramos','miguel@email.com','Arequipa',1);
+INSERT INTO pedidos (cliente_id, fecha, estado) VALUES
+  (1,'2024-01-10','entregado'),(1,'2024-02-15','entregado'),
+  (2,'2024-01-20','enviado'),(3,'2024-02-01','cancelado'),
+  (4,'2024-02-20','pendiente'),(5,'2024-03-05','entregado'),
+  (5,'2024-03-10','enviado'),(6,'2024-03-12','pendiente'),
+  (8,'2024-03-15','entregado'),(8,'2024-03-18','entregado');
+INSERT INTO detalle_pedidos (pedido_id, producto_id, cantidad, precio_unit) VALUES
+  (1,1,1,2500),(1,2,2,45),(2,11,1,55),(2,12,1,60),
+  (3,5,3,30),(3,6,1,80),(4,8,5,18),(5,3,1,150),
+  (5,4,1,700),(6,14,1,180),(7,7,2,120),(8,9,3,25),
+  (8,10,2,22),(9,2,1,45),(9,13,2,35),(10,15,1,250),(10,1,1,2500);
+`;
+
+// ═══════════════════════════════════════════
+//  APP STATE
+// ═══════════════════════════════════════════
+let db = null;
+let currentEx = EXERCISES[0];
+
+// ── Build Sidebar ──
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const topics = [
+    { key: 'select', label: 'SELECT & Filtros', tag: 'tag-select' },
+    { key: 'join',   label: 'JOINs',            tag: 'tag-join'   },
+    { key: 'agg',    label: 'Agregaciones',      tag: 'tag-agg'    },
+    { key: 'sub',    label: 'Subconsultas',       tag: 'tag-sub'    },
+  ];
+  topics.forEach(topic => {
+    const section = document.createElement('div');
+    section.innerHTML = `
+      <div class="sidebar-section">${topic.label}</div>
+      <span class="topic-tag ${topic.tag}">${topic.label}</span>
+    `;
+    sidebar.appendChild(section);
+    EXERCISES.filter(e => e.topic === topic.key).forEach(ex => {
+      const btn = document.createElement('button');
+      btn.className = 'exercise-btn' + (ex.id === 1 ? ' active' : '');
+      btn.dataset.id = ex.id;
+      btn.innerHTML = `
+        <span class="ex-num">${String(ex.id).padStart(2,'0')}</span>
+        <span class="ex-title">${ex.title}</span>
+      `;
+      btn.onclick = () => selectExercise(ex.id);
+      sidebar.appendChild(btn);
+    });
+  });
+}
+
+function selectExercise(id) {
+  currentEx = EXERCISES.find(e => e.id === id);
+  document.querySelectorAll('.exercise-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.id) === id);
+  });
+  const header = document.getElementById('exerciseHeader');
+  header.innerHTML = `
+    <div class="exercise-meta fade-in">
+      <span class="topic-tag ${currentEx.tag}">${currentEx.topicLabel}</span>
+      <span class="ex-id">ejercicio ${String(currentEx.id).padStart(2,'0')}</span>
+    </div>
+    <div class="exercise-title fade-in">${currentEx.desc}</div>
+  `;
+  document.getElementById('editor').value = '';
+  document.getElementById('resultBody').innerHTML = `
+    <div class="result-placeholder">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0018 0V5"/><path d="M3 12a9 3 0 0018 0"/>
+      </svg>
+      <p>ejecuta una consulta para ver resultados</p>
+    </div>`;
+  document.getElementById('execTime').textContent = '';
+}
+
+// ── Run Query ──
+function runQuery() {
+  const sql = document.getElementById('editor').value.trim();
+  if (!sql) return;
+  const t0 = performance.now();
+  try {
+    const results = db.exec(sql);
+    const ms = (performance.now() - t0).toFixed(1);
+    document.getElementById('execTime').textContent = `${ms}ms`;
+    const body = document.getElementById('resultBody');
+    if (!results.length) {
+      body.innerHTML = `<div class="success-badge">✓ Consulta ejecutada correctamente</div>`;
+      return;
+    }
+    const { columns, values } = results[0];
+    let html = `<div class="success-badge">✓ ${values.length} fila${values.length!==1?'s':''} encontrada${values.length!==1?'s':''}</div>`;
+    html += `<div class="result-table-wrap"><table><thead><tr>`;
+    columns.forEach(c => html += `<th>${c}</th>`);
+    html += `</tr></thead><tbody>`;
+    values.forEach(row => {
+      html += `<tr>`;
+      row.forEach(cell => html += `<td>${cell ?? '<span style="color:var(--muted)">NULL</span>'}</td>`);
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+    html += `<div class="row-count">${values.length} row${values.length!==1?'s':''} · ${ms}ms</div>`;
+    body.innerHTML = html;
+  } catch (err) {
+    document.getElementById('execTime').textContent = '';
+    document.getElementById('resultBody').innerHTML =
+      `<div class="error-box">❌ Error: ${err.message}</div>`;
+  }
+}
+
+// ── Show Solution ──
+function showSolution() {
+  document.getElementById('editor').value = currentEx.solution;
+}
+
+// ── Keyboard shortcut Ctrl+Enter ──
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runQuery();
+});
+
+// ── Init SQL.js ──
+async function init() {
+  const SQL = await initSqlJs({
+    locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`
+  });
+  db = new SQL.Database();
+  db.run(SCHEMA_SQL);
+  buildSidebar();
+  selectExercise(1);
+  setTimeout(() => {
+    document.getElementById('loader').style.display = 'none';
+  }, 1800);
+}
+
+init().catch(err => {
+  document.getElementById('loader').innerHTML =
+    `<div style="color:var(--red);font-family:'JetBrains Mono',monospace">Error al cargar: ${err.message}</div>`;
+});
+</script>
+</body>
+</html>
