@@ -1,5 +1,5 @@
 -- ============================================================
---  blakedev - By Nayeli Paitan | SQL Práctico con MySQL
+--  BlakeDev - By Nayeli Paitan | SQL Práctico con MySQL
 --  Tema: Agregaciones y GROUP BY — SOLUCIONES
 -- ============================================================
 USE tienda_db;
